@@ -190,6 +190,7 @@
 <div id="home">
   <div class="logo"><span>U</span><span>N</span><span>O</span><span>!</span></div>
   <div class="tagline">Main UNO online bareng teman — buat room, bagikan kodenya, langsung main dari HP atau laptop masing-masing.</div>
+  <div style="color:var(--muted);font-size:11px;margin-top:-14px;margin-bottom:22px;">Dibuat oleh Hugo &amp; Lulu</div>
   <div class="card-panel">
     <div class="field">
       <label>Nama kamu</label>
@@ -199,14 +200,16 @@
       <label>Warna avatar</label>
       <div class="avatar-row" id="avatarRow"></div>
     </div>
-    <button class="btn btn-primary" onclick="createRoom()">Buat Room Baru</button>
+    <button class="btn btn-primary" id="quickPlayBtn" onclick="quickPlay()">⚡ Main Cepat (Lawan Bot)</button>
+    <div class="divider">atau main bareng teman</div>
+    <button class="btn btn-secondary" id="createBtn" onclick="createRoom()">Buat Room Baru</button>
     <div class="divider">atau gabung room teman</div>
     <div class="field">
       <label>Kode Room</label>
       <input type="text" id="codeInput" placeholder="Contoh: AB12" maxlength="4" style="text-transform:uppercase;letter-spacing:4px;">
     </div>
     <label class="check-row"><input type="checkbox" id="spectatorToggle"> Gabung sebagai penonton (tanpa main)</label>
-    <button class="btn btn-secondary" onclick="joinRoom()" style="margin-top:14px;">Gabung Room</button>
+    <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()" style="margin-top:14px;">Gabung Room</button>
     <div id="homeMsg"></div>
   </div>
 </div>
@@ -295,6 +298,22 @@ let isSpectatorMode = false;
 let pollTimer = null;
 let pendingWildCardId = null;
 let pendingSevenCardId = null;
+let isQuickPlay = false;
+let localState = null;
+let botMoveScheduled = false;
+const BOT_NAMES = ['Bot Andi','Bot Sari','Bot Budi'];
+
+// ---- storage availability ----
+// window.storage only exists when this page is rendered inside a Claude Artifact.
+// If it's missing, every create/join action would previously fail silently.
+function hasStorage(){
+  return typeof window !== 'undefined' && !!window.storage
+    && typeof window.storage.set === 'function'
+    && typeof window.storage.get === 'function';
+}
+function warnNoStorage(elId){
+  showMsg(elId, 'Penyimpanan multiplayer tidak tersedia di lingkungan ini. Buka file ini sebagai Artifact di Claude.ai (atau lewat tombol "Buat file" pada chat) agar fitur buat/gabung room bisa berfungsi.');
+}
 
 // ---- sound ----
 let soundOn = true;
@@ -397,12 +416,162 @@ function shuffle(arr){
   return arr;
 }
 
-async function saveState(state){ await window.storage.set('uno:'+roomCode, JSON.stringify(state), true); }
+// saveState/loadState now always resolve (never throw) so callers can safely
+// check success/failure instead of the page silently doing nothing.
+async function saveState(state){
+  if(isQuickPlay){
+    localState = state;
+    scheduleBotMoveIfNeeded();
+    return true;
+  }
+  if(!hasStorage()) return false;
+  try{
+    const res = await window.storage.set('uno:'+roomCode, JSON.stringify(state), true);
+    return !!res;
+  }catch(e){
+    console.error('saveState failed:', e);
+    return false;
+  }
+}
 async function loadState(code){
+  if(isQuickPlay){
+    return localState ? JSON.parse(JSON.stringify(localState)) : null;
+  }
+  if(!hasStorage()) return null;
   try{
     const res = await window.storage.get('uno:'+code, true);
     return res ? JSON.parse(res.value) : null;
-  }catch(e){ return null; }
+  }catch(e){
+    console.error('loadState failed:', e);
+    return null;
+  }
+}
+
+// ---- Quick Play (vs bots, single device, no room/storage needed) ----
+async function quickPlay(){
+  ensureAudio();
+  showMsg('homeMsg','');
+  const name = document.getElementById('nameInput').value.trim() || 'Kamu';
+  myName = name;
+  isQuickPlay = true;
+  isSpectatorMode = false;
+  myId = 'human';
+  roomCode = 'BOT';
+
+  const botColors = AVATAR_COLORS.filter(c=>c!==myAvatar);
+  const players = [{id:myId, name:myName, avatarColor:myAvatar}];
+  BOT_NAMES.forEach((n,i)=>{
+    players.push({id:'bot'+(i+1), name:n, avatarColor: botColors[i % botColors.length], isBot:true});
+  });
+
+  let deck = shuffle(createDeck());
+  const hands = {};
+  players.forEach(p=>{ hands[p.id] = deck.splice(0,7); });
+  let first = deck.pop();
+  while(first.color==='black'){ deck.unshift(first); shuffle(deck); first = deck.pop(); }
+
+  const state = {
+    code: roomCode,
+    hostId: myId,
+    players,
+    spectators: [],
+    started: true,
+    winner: null,
+    hands,
+    deck,
+    discard: [first],
+    currentColor: first.color,
+    currentIndex: 0,
+    direction: 1,
+    log: ['Main cepat dimulai melawan bot!', 'Giliran ' + myName],
+    pendingDraw: 0,
+    pendingDrawType: null,
+    unoCalled: {},
+    houseRules: true,
+    chat: []
+  };
+  await saveState(state);
+  enterGameDirect(state);
+}
+
+function scheduleBotMoveIfNeeded(){
+  if(!isQuickPlay || botMoveScheduled) return;
+  const state = localState;
+  if(!state || !state.started || state.winner) return;
+  const cur = state.players[state.currentIndex];
+  if(!cur || !cur.isBot) return;
+  botMoveScheduled = true;
+  setTimeout(async ()=>{
+    botMoveScheduled = false;
+    await botTakeTurn();
+  }, 800 + Math.random()*500);
+}
+
+async function botTakeTurn(){
+  let state = await loadState(roomCode);
+  if(!state || !state.started || state.winner) return;
+  const idx = state.currentIndex;
+  const bot = state.players[idx];
+  if(!bot || !bot.isBot) return;
+  if(!state.unoCalled) state.unoCalled = {};
+
+  // Bots occasionally catch other players who forgot to call UNO
+  const catchable = state.players.filter(p=>p.id!==bot.id && (state.hands[p.id]||[]).length===1 && state.unoCalled[p.id]!==true);
+  if(catchable.length && Math.random()<0.5){
+    const target = catchable[Math.floor(Math.random()*catchable.length)];
+    drawCardsInto(state, target.id, 2);
+    state.log.push(bot.name + ' menangkap ' + target.name + ' karena lupa bilang UNO! Tarik 2 kartu');
+    delete state.unoCalled[target.id];
+  }
+
+  const hand = state.hands[bot.id] || [];
+  const top = state.discard[state.discard.length-1];
+  const pendingDraw = state.pendingDraw||0;
+  const playableCards = hand.filter(c=>isPlayable(c, top, state.currentColor, pendingDraw));
+
+  if(playableCards.length===0){
+    if(pendingDraw>0){
+      drawCardsInto(state, bot.id, pendingDraw);
+      state.log.push(bot.name + ' menarik ' + pendingDraw + ' kartu tumpukan');
+      state.pendingDraw = 0;
+      state.pendingDrawType = null;
+    } else {
+      drawCardsInto(state, bot.id, 1);
+      state.log.push(bot.name + ' menarik 1 kartu');
+    }
+    state.currentIndex = nextIndex(state, state.currentIndex, 1);
+    state.log.push('Giliran ' + state.players[state.currentIndex].name);
+    await saveState(state);
+    return;
+  }
+
+  const chosen = playableCards.find(c=>c.color!=='black') || playableCards[0];
+
+  let chosenColor = null;
+  if(chosen.color==='black'){
+    const counts = {red:0,yellow:0,green:0,blue:0};
+    hand.forEach(c=>{ if(c.id!==chosen.id && counts[c.color]!==undefined) counts[c.color]++; });
+    chosenColor = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0] || COLORS[Math.floor(Math.random()*4)];
+  }
+
+  let swapWith = null;
+  if(state.houseRules!==false && chosen.type==='number' && chosen.value===7){
+    const others = state.players.filter(p=>p.id!==bot.id);
+    others.sort((a,b)=>(state.hands[a.id]||[]).length-(state.hands[b.id]||[]).length);
+    swapWith = others[0] ? others[0].id : null;
+  }
+
+  await applyPlayCore(state, bot.id, idx, chosen, chosenColor, false, swapWith?{swapWith}:undefined);
+
+  const after = await loadState(roomCode);
+  if(after && !after.winner){
+    if(!after.unoCalled) after.unoCalled = {};
+    if((after.hands[bot.id]||[]).length===1 && after.unoCalled[bot.id]!==true){
+      after.unoCalled[bot.id] = true;
+      after.log.push(bot.name + ' menyerukan UNO!');
+      await saveState(after);
+    }
+  }
 }
 function showMsg(elId, text){ document.getElementById(elId).textContent = text; }
 function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -414,77 +583,101 @@ function playerColor(state,id){
 
 async function createRoom(){
   ensureAudio();
+  showMsg('homeMsg','');
+  if(!hasStorage()){ warnNoStorage('homeMsg'); return; }
   const name = document.getElementById('nameInput').value.trim();
   if(!name){ showMsg('homeMsg','Isi nama kamu dulu ya'); return; }
-  myName = name;
-  roomCode = genRoomCode();
-  myId = hashId('P:' + name.toLowerCase() + '|' + roomCode);
-  isSpectatorMode = false;
-  const state = {
-    code: roomCode,
-    hostId: myId,
-    players: [{id:myId, name:myName, avatarColor:myAvatar}],
-    spectators: [],
-    started:false,
-    winner:null,
-    hands:{},
-    deck:[],
-    discard:[],
-    currentColor:null,
-    currentIndex:0,
-    direction:1,
-    log:['Room dibuat oleh ' + myName],
-    pendingDraw:0,
-    pendingDrawType:null,
-    unoCalled:{},
-    houseRules:true,
-    chat:[]
-  };
-  await saveState(state);
-  enterLobby(state);
+
+  const createBtn = document.getElementById('createBtn');
+  createBtn.disabled = true;
+  try{
+    myName = name;
+    roomCode = genRoomCode();
+    myId = hashId('P:' + name.toLowerCase() + '|' + roomCode);
+    isSpectatorMode = false;
+    const state = {
+      code: roomCode,
+      hostId: myId,
+      players: [{id:myId, name:myName, avatarColor:myAvatar}],
+      spectators: [],
+      started:false,
+      winner:null,
+      hands:{},
+      deck:[],
+      discard:[],
+      currentColor:null,
+      currentIndex:0,
+      direction:1,
+      log:['Room dibuat oleh ' + myName],
+      pendingDraw:0,
+      pendingDrawType:null,
+      unoCalled:{},
+      houseRules:true,
+      chat:[]
+    };
+    const ok = await saveState(state);
+    if(!ok){
+      showMsg('homeMsg','Gagal membuat room (penyimpanan bermasalah). Coba lagi sebentar.');
+      return;
+    }
+    enterLobby(state);
+  } finally {
+    createBtn.disabled = false;
+  }
 }
 
 async function joinRoom(){
   ensureAudio();
+  showMsg('homeMsg','');
+  if(!hasStorage()){ warnNoStorage('homeMsg'); return; }
   const name = document.getElementById('nameInput').value.trim();
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
   const asSpectator = document.getElementById('spectatorToggle').checked;
   if(!name){ showMsg('homeMsg','Isi nama kamu dulu ya'); return; }
   if(!code){ showMsg('homeMsg','Isi kode room dulu ya'); return; }
-  myName = name; roomCode = code; isSpectatorMode = asSpectator;
-  myId = hashId((asSpectator?'S:':'P:') + name.toLowerCase() + '|' + code);
 
-  let state = await loadState(code);
-  if(!state){ showMsg('homeMsg','Room tidak ditemukan. Cek lagi kodenya.'); return; }
-  if(!state.spectators) state.spectators=[];
-  if(!state.chat) state.chat=[];
+  const joinBtn = document.getElementById('joinBtn');
+  joinBtn.disabled = true;
+  try{
+    myName = name; roomCode = code; isSpectatorMode = asSpectator;
+    myId = hashId((asSpectator?'S:':'P:') + name.toLowerCase() + '|' + code);
 
-  if(asSpectator){
-    if(!state.spectators.find(s=>s.id===myId)){
-      state.spectators.push({id:myId, name:myName});
-      state.log.push(myName + ' bergabung sebagai penonton');
-      await saveState(state);
-    }
-    if(state.started){ enterGameDirect(state); } else { enterLobby(state); }
-    return;
-  }
+    let state = await loadState(code);
+    if(!state){ showMsg('homeMsg','Room tidak ditemukan. Cek lagi kodenya.'); return; }
+    if(!state.spectators) state.spectators=[];
+    if(!state.chat) state.chat=[];
 
-  const existingPlayer = state.players.find(p=>p.id===myId);
-  if(state.started){
-    if(!existingPlayer){
-      showMsg('homeMsg','Game sudah dimulai. Coba gabung sebagai penonton, atau pastikan nama & kode room sama seperti waktu kamu ikut main sebelumnya.');
+    if(asSpectator){
+      if(!state.spectators.find(s=>s.id===myId)){
+        state.spectators.push({id:myId, name:myName});
+        state.log.push(myName + ' bergabung sebagai penonton');
+        const ok = await saveState(state);
+        if(!ok){ showMsg('homeMsg','Gagal bergabung (penyimpanan bermasalah). Coba lagi.'); return; }
+      }
+      if(state.started){ enterGameDirect(state); } else { enterLobby(state); }
       return;
     }
-    enterGameDirect(state);
-    return;
+
+    const existingPlayer = state.players.find(p=>p.id===myId);
+    if(state.started){
+      if(!existingPlayer){
+        showMsg('homeMsg','Game sudah dimulai. Coba gabung sebagai penonton, atau pastikan nama & kode room sama seperti waktu kamu ikut main sebelumnya.');
+        return;
+      }
+      enterGameDirect(state);
+      return;
+    }
+    if(!existingPlayer){
+      if(state.players.length>=8){ showMsg('homeMsg','Room sudah penuh.'); return; }
+      state.players.push({id:myId, name:myName, avatarColor:myAvatar});
+      state.log.push(myName + ' bergabung ke room');
+      const ok = await saveState(state);
+      if(!ok){ showMsg('homeMsg','Gagal bergabung (penyimpanan bermasalah). Coba lagi.'); return; }
+    }
+    enterLobby(state);
+  } finally {
+    joinBtn.disabled = false;
   }
-  if(!existingPlayer){
-    if(state.players.length>=8){ showMsg('homeMsg','Room sudah penuh.'); return; }
-    state.players.push({id:myId, name:myName, avatarColor:myAvatar});
-    state.log.push(myName + ' bergabung ke room');
-    await saveState(state);
-  }
-  enterLobby(state);
 }
 
 function enterLobby(state){
@@ -500,12 +693,10 @@ function enterGameDirect(state){
   document.getElementById('lobby').style.display='none';
   document.getElementById('game').style.display='flex';
   document.getElementById('gc').textContent = roomCode;
-  document.getElementById('myNameTag').textContent = avatarDotPlain() + myName + (isSpectatorMode?' (nonton)':' (kamu)');
   document.getElementById('myNameTag').innerHTML = avatarDot(myAvatar) + escapeHtml(myName) + (isSpectatorMode?' (nonton)':' (kamu)');
   renderGame(state);
   startPolling();
 }
-function avatarDotPlain(){ return ''; }
 
 function renderLobby(state){
   const list = document.getElementById('playerList');
@@ -564,7 +755,8 @@ async function startGame(){
   state.unoCalled = {};
   state.houseRules = document.getElementById('houseRulesToggle').checked;
   state.log.push('Permainan dimulai! Giliran ' + state.players[0].name + (state.houseRules?' • House rule 7-0 & Jump-in aktif':''));
-  await saveState(state);
+  const ok = await saveState(state);
+  if(!ok){ showMsg('lobbyMsg','Gagal memulai permainan (penyimpanan bermasalah). Coba lagi.'); }
 }
 
 function startPolling(){
@@ -673,7 +865,7 @@ function renderGame(state){
     d.className='opp'+(i===state.currentIndex?' active':'');
     const cnt = (state.hands[p.id]||[]).length;
     const exposed = cnt===1 && state.unoCalled[p.id]!==true;
-    d.innerHTML = `<div class="name">${avatarDot(p.avatarColor)}${escapeHtml(p.name)}</div><div class="cnt${exposed?' exposed':''}">${cnt}</div>`;
+    d.innerHTML = `<div class="name">${avatarDot(p.avatarColor)}${escapeHtml(p.name)}${p.isBot?' 🤖':''}</div><div class="cnt${exposed?' exposed':''}">${cnt}</div>`;
     if(exposed && p.id!==myId){
       const btn = document.createElement('button');
       btn.className='catch-btn';
