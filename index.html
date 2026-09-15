@@ -113,18 +113,47 @@
   .deck-pile .lbl{font-family:Georgia,serif;font-weight:900;color:var(--ink);font-size:15px;text-align:center;}
   .deck-count{position:absolute;bottom:-22px;font-size:12px;color:var(--muted);white-space:nowrap;}
 
-  .uno-card{width:80px;height:118px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:900;font-size:30px;box-shadow:0 6px 0 rgba(0,0,0,.35);position:relative;flex-shrink:0;}
-  .uno-card.small{width:70px;height:104px;font-size:24px;}
+  .uno-card{
+    width:80px;height:118px;border-radius:11px;background:#fdfdfb;padding:4px;
+    box-shadow:0 6px 0 rgba(0,0,0,.35);position:relative;flex-shrink:0;
+  }
+  .uno-card.small{width:70px;height:104px;padding:3px;}
   .uno-card.pop{animation:popIn .35s cubic-bezier(.2,1.4,.4,1);}
   @keyframes popIn{0%{transform:scale(.4) rotate(-12deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
-  .uno-card .core{width:82%;height:70%;border-radius:50% / 60%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.3);}
-  .uno-card.c-red{background:var(--red);}
-  .uno-card.c-yellow{background:var(--yellow);color:#3a2a00;}
-  .uno-card.c-green{background:var(--green);}
-  .uno-card.c-blue{background:var(--blue);}
-  .uno-card.c-black{background:linear-gradient(135deg,var(--red),var(--yellow),var(--green),var(--blue));}
-  .uno-card.c-black .core{background:#141317;}
-  .uno-card .core span{color:#fff;}
+  .uno-card .face{position:relative;width:100%;height:100%;border-radius:8px;overflow:hidden;background:var(--face-color);}
+  .uno-card .lens{
+    position:absolute;left:50%;top:50%;width:60%;height:150%;
+    background:#fff;border:2.5px solid #111;border-radius:50%;
+    transform:translate(-50%,-50%) rotate(-20deg);
+  }
+  .uno-card .center-symbol{
+    position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+    font-family:Arial,Helvetica,sans-serif;font-weight:900;font-size:36px;color:#fff;
+    -webkit-text-stroke:2.5px #111;paint-order:stroke fill;
+  }
+  .uno-card.small .center-symbol{font-size:28px;-webkit-text-stroke:2px #111;}
+  .uno-card .corner{
+    position:absolute;z-index:3;font-family:Arial,Helvetica,sans-serif;font-weight:900;font-size:13px;color:#fff;
+    -webkit-text-stroke:1.3px #111;paint-order:stroke fill;line-height:1;
+  }
+  .uno-card.small .corner{font-size:11px;-webkit-text-stroke:1.1px #111;}
+  .uno-card .corner.tl{top:5px;left:6px;}
+  .uno-card .corner.br{bottom:5px;right:6px;transform:rotate(180deg);}
+  .color-wheel{
+    width:15px;height:11px;border-radius:50%;border:1.6px solid #fff;
+    background:conic-gradient(var(--red) 0deg 90deg, var(--blue) 90deg 180deg, var(--green) 180deg 270deg, var(--yellow) 270deg 360deg);
+  }
+  .color-wheel.big{width:34px;height:26px;border-width:2.5px;}
+  .uno-card.small .color-wheel{width:12px;height:9px;}
+  .chip-stack{position:relative;width:34px;height:30px;}
+  .uno-card.small .chip-stack{width:26px;height:23px;}
+  .chip-stack .chip{position:absolute;width:15px;height:19px;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+  .uno-card.small .chip-stack .chip{width:11px;height:15px;}
+  .chip-stack .chip.blue{background:var(--blue);left:0;top:1px;}
+  .chip-stack .chip.yellow{background:var(--yellow);right:0;top:0;}
+  .chip-stack .chip.red{background:var(--red);left:7px;top:9px;}
+  .uno-card.small .chip-stack .chip.red{left:5px;top:7px;}
+  .chip-stack .chip.green{background:var(--green);left:0;bottom:0;}
 
   .colorflag{width:26px;height:26px;border-radius:50%;display:inline-block;vertical-align:middle;border:2px solid #fff;}
 
@@ -176,8 +205,10 @@
   #soundToggle{position:fixed;top:10px;right:10px;background:var(--panel2);border:1px solid #3a3742;color:var(--muted);border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;z-index:70;}
 
   @media (max-width:480px){
-    .uno-card{width:64px;height:96px;font-size:24px;}
-    .uno-card.small{width:56px;height:84px;font-size:19px;}
+    .uno-card{width:64px;height:96px;}
+    .uno-card.small{width:56px;height:84px;}
+    .uno-card .center-symbol{font-size:28px;-webkit-text-stroke:2px #111;}
+    .uno-card.small .center-symbol{font-size:22px;-webkit-text-stroke:1.6px #111;}
     .deck-pile{width:70px;height:100px;}
   }
 </style>
@@ -781,18 +812,31 @@ function startPolling(){
 function cardLabel(card){
   if(card.type==='number') return String(card.value);
   if(card.type==='skip') return '⦸';
-  if(card.type==='reverse') return '⇄';
+  if(card.type==='reverse') return '⇅';
   if(card.type==='draw2') return '+2';
-  if(card.type==='wild') return '★';
   if(card.type==='wild4') return '+4';
+  if(card.type==='wild') return '';
+}
+function cornerHtml(card){
+  if(card.type==='wild') return '<div class="color-wheel"></div>';
+  return '<span>'+cardLabel(card)+'</span>';
+}
+function centerHtml(card){
+  if(card.type==='wild') return '<div class="color-wheel big"></div>';
+  if(card.type==='wild4') return '<div class="chip-stack"><div class="chip blue"></div><div class="chip yellow"></div><div class="chip red"></div><div class="chip green"></div></div>';
+  return '<span>'+cardLabel(card)+'</span>';
 }
 function cardEl(card, opts={}){
   const div = document.createElement('div');
-  div.className = 'uno-card c-' + card.color + (opts.small?' small':'') + (opts.pop?' pop':'');
-  const core = document.createElement('div');
-  core.className='core';
-  core.innerHTML = '<span>'+cardLabel(card)+'</span>';
-  div.appendChild(core);
+  div.className = 'uno-card' + (opts.small?' small':'') + (opts.pop?' pop':'');
+  div.style.setProperty('--face-color', 'var(--'+card.color+')');
+  div.innerHTML =
+    '<div class="face">' +
+      '<div class="lens"></div>' +
+      '<div class="corner tl">'+cornerHtml(card)+'</div>' +
+      '<div class="center-symbol">'+centerHtml(card)+'</div>' +
+      '<div class="corner br">'+cornerHtml(card)+'</div>' +
+    '</div>';
   return div;
 }
 function isPlayable(card, topCard, currentColor, pendingDraw){
