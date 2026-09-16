@@ -11,6 +11,11 @@
 <meta property="og:description" content="Main UNO seru & romantis bareng ayang — klik untuk langsung masuk ke room!">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#f43f5e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UNO 💖">
 
 <!-- PeerJS for Free Serverless WebRTC Multiplayer -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -587,6 +592,7 @@
 <!-- Topbar Quick Toggles -->
 <div class="system-bar">
   <button class="sys-btn" id="themeToggle" onclick="toggleTheme()">🌸 Tema</button>
+  <button class="sys-btn" id="musicToggle" onclick="toggleMusic()">🎵 Musik: OFF</button>
   <button class="sys-btn" id="soundToggle" onclick="toggleSound()">🔊 Suara: ON</button>
 </div>
 
@@ -639,6 +645,9 @@
 
     <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()" style="margin-top:14px;">
       <span>🚀</span> Gabung Room
+    </button>
+    <button class="btn btn-secondary" id="installPwaBtn" style="display:none; margin-top:14px; border-color:var(--pink); color:var(--pink);" onclick="installPwa()">
+      <span>📲</span> Pasang Aplikasi di Layar HP
     </button>
     <div id="homeMsg"></div>
   </div>
@@ -2377,6 +2386,125 @@ window.addEventListener('resize', () => {
     canvas.height = window.innerHeight;
   }
 });
+
+/* ==================== ROMANTIC LO-FI BGM SYNTHESIZER ==================== */
+let musicOn = false;
+let musicAudioTimer = null;
+let musicNodes = [];
+
+function toggleMusic() {
+  ensureAudio();
+  musicOn = !musicOn;
+  localStorage.setItem('uno_music', musicOn ? '1' : '0');
+  updateMusicButton();
+  if (musicOn) {
+    startLoFiMusic();
+    showToast('Musik santai romantis diputar 🎵💖');
+  } else {
+    stopLoFiMusic();
+  }
+}
+
+function updateMusicButton() {
+  const btn = document.getElementById('musicToggle');
+  if (btn) btn.textContent = musicOn ? '🎵 Musik: ON' : '🎵 Musik: OFF';
+}
+
+function startLoFiMusic() {
+  stopLoFiMusic();
+  if (!musicOn) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  const chords = [
+    { bass: 174.61, notes: [220.00, 261.63, 329.63] }, // Fmaj7
+    { bass: 164.81, notes: [196.00, 246.94, 293.66] }, // Em7
+    { bass: 146.83, notes: [174.61, 220.00, 261.63] }, // Dm7
+    { bass: 130.81, notes: [164.81, 196.00, 246.94] }  // Cmaj7
+  ];
+
+  let step = 0;
+  const stepDuration = 2.4;
+
+  function playNextChord() {
+    if (!musicOn) return;
+    const now = ctx.currentTime;
+    const chord = chords[step % chords.length];
+
+    playLoFiNote(ctx, chord.bass, now, 2.2, 'triangle', 0.04);
+    chord.notes.forEach((freq, idx) => {
+      playLoFiNote(ctx, freq, now + (idx * 0.12), 2.0, 'sine', 0.03);
+    });
+
+    step++;
+    musicAudioTimer = setTimeout(playNextChord, stepDuration * 1000);
+  }
+
+  playNextChord();
+}
+
+function playLoFiNote(ctx, freq, startTime, duration, type, vol) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(650, startTime);
+  filter.Q.setValueAtTime(1.5, startTime);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(vol, startTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.1);
+  musicNodes.push(osc);
+}
+
+function stopLoFiMusic() {
+  if (musicAudioTimer) clearTimeout(musicAudioTimer);
+  musicAudioTimer = null;
+  musicNodes.forEach(node => {
+    try { node.stop(); } catch(e){}
+  });
+  musicNodes = [];
+}
+
+/* ==================== PWA INSTALL & SERVICE WORKER ==================== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('installPwaBtn');
+  if (btn) btn.style.display = 'flex';
+});
+
+function installPwa() {
+  if (!deferredPrompt) {
+    showToast('Di iPhone: tekan tombol Share 📤 lalu pilih "Add to Home Screen" 📲');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    const btn = document.getElementById('installPwaBtn');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW reg error:', e));
+  });
+}
+
 </script>
 </body>
 </html>

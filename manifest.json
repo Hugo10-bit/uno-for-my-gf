@@ -1,0 +1,18 @@
+{
+  "name": "UNO for My GF 💖",
+  "short_name": "UNO 💖",
+  "description": "Game UNO Online romantis & seru untuk dimainkan bersama pasangan",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#131217",
+  "theme_color": "#f43f5e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

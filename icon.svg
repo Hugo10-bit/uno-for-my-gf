@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#fff0f5" />
+    </linearGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer Rounded Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- UNO Card Illustration -->
+  <g filter="url(#dropShadow)" transform="translate(136, 96) rotate(-8, 120, 160)">
+    <rect x="0" y="0" width="240" height="340" rx="32" fill="url(#cardGrad)" stroke="#ffffff" stroke-width="8"/>
+    <!-- Card Center Oval -->
+    <ellipse cx="120" cy="170" rx="90" ry="140" fill="#f43f5e" transform="rotate(-25, 120, 170)"/>
+    <!-- Heart Icon in Center -->
+    <path d="M120,135 C120,110 90,95 72,115 C50,140 70,180 120,225 C170,180 190,140 168,115 C150,95 120,110 120,135 Z" fill="#ffffff"/>
+    <!-- Corner Mini Hearts -->
+    <path d="M30,38 C30,30 20,25 15,31 C8,38 14,50 30,62 C46,50 52,38 45,31 C40,25 30,30 30,38 Z" fill="#f43f5e" transform="scale(0.8) translate(8, 8)"/>
+    <path d="M30,38 C30,30 20,25 15,31 C8,38 14,50 30,62 C46,50 52,38 45,31 C40,25 30,30 30,38 Z" fill="#f43f5e" transform="rotate(180, 120, 170) scale(0.8) translate(8, 8)"/>
+  </g>
+</svg>

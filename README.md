@@ -6,19 +6,27 @@ Game kartu **UNO Online** yang dibuat dengan penuh cinta oleh **Hugo** untuk dim
 
 ## ✨ Fitur-Fitur Spesial
 
-1. **🌐 Multiplayer Online Nyata (Serverless WebRTC P2P)**:
+1. **📱 Progressive Web App (PWA / Pasang di Layar HP)**:
+   - Dilengkapi `manifest.json`, icon SVG HD 💖, dan Service Worker.
+   - Bisa dipasang langsung ke Home Screen HP (Android & iOS Safari) sehingga muncul sebagai icon aplikasi tersendiri dan berjalan fullscreen!
+
+2. **🎵 Musik Latar Lo-Fi Romantis (BGM Synthesizer)**:
+   - Musik santai instrumen Lo-Fi piano elektrik sintetis berbasis Web Audio API langsung dari browser.
+   - Tanpa download file audio berat, bisa dinyalakan / dimatikan lewat tombol `🎵 Musik: ON/OFF`.
+
+3. **🌐 Multiplayer Online Nyata (Serverless WebRTC P2P)**:
    - Terhubung langsung antar-perangkat menggunakan WebRTC (PeerJS) & BroadcastChannel.
    - Tanpa perlu backend server berbayar — host room dan langsung main dari mana saja!
 
-2. **💌 WhatsApp Link Preview & Favicon Cantik**:
+4. **💌 WhatsApp Link Preview & Favicon Cantik**:
    - Dilengkapi OpenGraph meta tags: saat link dikirim ke WhatsApp / Telegram, otomatis muncul thumbnail kartu hati, judul *"UNO for My GF 💖"*, dan deskripsi manis.
    - Favicon logo kartu hati 💖 di tab browser.
 
-3. **🏆 Papan Skor Multi-Ronde (Scoreboard System)**:
+5. **🏆 Papan Skor Multi-Ronde (Scoreboard System)**:
    - Menghitung jumlah kemenangan antar-ronde (contoh: `Hugo 2 - 3 Lulu`).
    - Tombol **"▶️ Lanjut Ronde Berikutnya"** di layar menang tanpa perlu reload halaman atau buat room dari awal.
 
-4. **🎡 Roda Hadiah & Hukuman Manis (Couple Dare Roulette)**:
+6. **🎡 Roda Hadiah & Hukuman Manis (Couple Dare Roulette)**:
    - Di layar kemenangan ada roulette interaktif untuk menentukan hadiah atau hukuman lucu bagi yang kalah:
      - 🍦 *"Traktir es krim atau minuman manis favorit!"*
      - 🤪 *"Kirim foto selfie muka paling lucu tanpa filter!"*
@@ -29,25 +37,25 @@ Game kartu **UNO Online** yang dibuat dengan penuh cinta oleh **Hugo** untuk dim
      - ✨ *"Bebas request 1 permintaan spesial hari ini!"*
      - 📸 *"Jadikan foto pasangan sebagai wallpaper HP 24 jam!"*
 
-5. **📳 Haptic Feedback (Getaran HP)**:
+7. **📳 Haptic Feedback (Getaran HP)**:
    - Getaran halus saat lempar kartu, getaran saat menarik kartu, dan getaran kejutan saat terkena `+4` atau seruan `UNO!` di layar sentuh HP.
 
-6. **🐱 Avatar Karakter & Emoji Menggemaskan**:
+8. **🐱 Avatar Karakter & Emoji Menggemaskan**:
    - Pilihan avatar emoji hewan lucu (`🐱 Kucing`, `🐰 Kelinci`, `🐻 Beruang`, `🐼 Panda`, `🌸 Bunga`, `💖 Hati`, `👑 Queen`, `🦊 Rubah`, `🐥 Anak Ayam`) dengan pilihan warna tema badge.
 
-7. **✨ Quick Floating Reactions (Emotes)**:
+9. **✨ Quick Floating Reactions (Emotes)**:
    - Tombol reaksi instan: ❤️ (Love), 🥺 (Pout), 😡 (Mad), 🥳 (Hore), 😂 (Ketawa), 😭 (Nangis), 🃏 (UNO).
    - Emoji akan melayang naik di layar kedua pemain dengan animasi dan efek suara lucu!
 
-8. **🎨 Theme Switcher (Dark Neon vs Pastel Love Mode)**:
-   - **Dark Neon**: Tampilan elegan modern dengan aksen warna kartu yang menyala.
-   - **Pastel Love**: Tampilan manis bertema pink, cream, dan rose gold yang feminin dan lembut.
+10. **🎨 Theme Switcher (Dark Neon vs Pastel Love Mode)**:
+    - **Dark Neon**: Tampilan elegan modern dengan aksen warna kartu yang menyala.
+    - **Pastel Love**: Tampilan manis bertema pink, cream, dan rose gold yang feminin dan lembut.
 
-9. **🎉 Hujan Confetti Hati & Pesan Spesial**:
-   - Hujan partikel confetti berbentuk hati ❤️ dan bintang ✨ saat ada pemain yang berhasil menghabiskan kartu.
-   - Pesan kemenangan romantis spesial jika Lulu yang memenangkan permainan!
+11. **🎉 Hujan Confetti Hati & Pesan Spesial**:
+    - Hujan partikel confetti berbentuk hati ❤️ dan bintang ✨ saat ada pemain yang berhasil menghabiskan kartu.
+    - Pesan kemenangan romantis spesial jika Lulu yang memenangkan permainan!
 
-10. **⚡ Mekanik Gameplay Lengkap & Halus**:
+12. **⚡ Mekanik Gameplay Lengkap & Halus**:
     - **Aturan Resmi UNO**: Skip, Reverse, Draw 2 (+2), Wild, dan Wild Draw 4 (+4).
     - **Draw-and-Play**: Jika menarik kartu dari deck dan kartunya cocok, muncul opsi langsung memainkan kartu tersebut atau menyimpannya.
     - **House Rules 7-0**: Kartu 7 bisa menukar semua kartu tangan dengan pemain lain; kartu 0 memutar seluruh kartu pemain.
