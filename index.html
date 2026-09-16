@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>UNO for My GF 💖</title>
+
+<!-- Favicon & OpenGraph Metadata for WhatsApp / Telegram Sharing -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='70' height='90' rx='14' x='15' y='5' fill='%23f43f5e' stroke='%23ffffff' stroke-width='4'/><circle cx='50' cy='50' r='24' fill='%23ffffff'/><text x='50' y='57' font-size='28' text-anchor='middle' font-family='sans-serif' font-weight='900' fill='%23f43f5e'>💖</text></svg>">
+<meta property="og:title" content="UNO for My GF 💖">
+<meta property="og:description" content="Main UNO seru & romantis bareng ayang — klik untuk langsung masuk ke room!">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f43f5e">
+
 <!-- PeerJS for Free Serverless WebRTC Multiplayer -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
@@ -271,6 +279,20 @@
   .topbar-left, .topbar-right { display: flex; align-items: center; gap: 8px; }
   .topbar b { color: var(--ink); }
 
+  /* Round & Score Tracker Badge */
+  .score-badge-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel2);
+    border: 1px solid var(--panel-border);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
   /* Turn Timer Bar */
   .turn-timer-wrap {
     width: 100%; max-width: 900px; height: 6px; background: var(--panel2);
@@ -308,6 +330,7 @@
   .opp .name { font-size: 13px; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
   .opp .cnt { font-size: 24px; font-weight: 900; color: var(--gold); line-height: 1.1; margin-top: 2px; }
   .opp .cnt.exposed { color: var(--red); animation: pulseWarn 0.9s infinite; }
+  .opp .score-tag { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 2px; }
   .catch-btn {
     margin-top: 6px; font-size: 11px; font-weight: 800; background: var(--red); color: #fff;
     border: none; border-radius: 8px; padding: 5px 9px; cursor: pointer; letter-spacing: 0.3px;
@@ -490,15 +513,60 @@
   .draw-action-preview { display: flex; justify-content: center; margin: 12px 0 18px; }
   .draw-action-btns { display: flex; gap: 10px; }
 
-  /* Victory Win Modal */
+  /* Victory Win Modal & Couple Roulette */
   #winModal { flex-direction: column; text-align: center; }
   .win-box {
     background: var(--panel); border: 2px solid var(--gold); border-radius: 24px;
-    padding: 34px 28px; max-width: 420px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    padding: 30px 24px; max-width: 440px; width: 92%; box-shadow: 0 25px 60px rgba(0,0,0,0.6);
     position: relative; animation: bannerPop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+    max-height: 90vh; overflow-y: auto;
   }
-  #winTitle { font-size: 32px; font-family: Georgia, serif; margin: 0 0 8px; color: var(--gold); }
-  #winSub { color: var(--muted); font-size: 15px; margin: 0 0 22px; line-height: 1.4; }
+  #winTitle { font-size: 30px; font-family: Georgia, serif; margin: 0 0 8px; color: var(--gold); }
+  #winSub { color: var(--muted); font-size: 14px; margin: 0 0 18px; line-height: 1.4; }
+
+  /* Scoreboard in Win Modal */
+  .win-scoreboard {
+    background: var(--panel2);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .win-score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 4px 8px;
+  }
+
+  /* Couple Dare Box */
+  .dare-box {
+    background: rgba(236,72,153,0.1);
+    border: 1.5px dashed var(--pink);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .dare-title { font-size: 13px; font-weight: 800; color: var(--pink); margin-bottom: 6px; }
+  .dare-content {
+    font-size: 14.5px; font-weight: 700; color: var(--ink);
+    min-height: 42px; display: flex; align-items: center; justify-content: center;
+    padding: 4px;
+  }
+  .dare-btn {
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; border: none; border-radius: 20px;
+    padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+    margin-top: 6px; transition: transform 0.1s ease;
+  }
+  .dare-btn:hover { filter: brightness(1.1); transform: scale(1.03); }
+
   #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 290; }
 
   @media (max-width: 600px) {
@@ -612,6 +680,7 @@
   <div class="topbar">
     <div class="topbar-left">
       <div>Room <b id="gc"></b></div>
+      <div id="roundBadge" class="score-badge-row">Ronde 1</div>
       <button class="copy-btn" style="margin-top:0; padding:3px 10px; font-size:11px;" onclick="copyInviteLink()">
         <span>📋</span> Salin Link
       </button>
@@ -704,14 +773,30 @@
   </div>
 </div>
 
-<!-- Win Modal -->
+<!-- Win Modal with Scoreboard & Couple Dare Roulette -->
 <div id="winModal">
   <div class="win-box">
     <h1 id="winTitle">Selamat! 🎉</h1>
     <p id="winSub">Permainan selesai.</p>
-    <button class="btn btn-primary" style="margin: 0 auto; max-width:240px;" onclick="location.reload()">
-      Main Lagi 🔄
-    </button>
+
+    <!-- Scoreboard -->
+    <div class="win-scoreboard" id="winScoreboard"></div>
+
+    <!-- Couple Dare Roulette -->
+    <div class="dare-box">
+      <div class="dare-title">🎡 Roda Hadiah &amp; Hukuman Manis</div>
+      <div class="dare-content" id="dareContent">Klik tombol di bawah untuk putar hukuman lucu!</div>
+      <button class="dare-btn" onclick="spinCoupleDare()">🎲 Putar Hadiah / Hukuman</button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn btn-primary" id="nextRoundBtn" onclick="requestNextRound()">
+        ▶️ Lanjut Ronde Berikutnya
+      </button>
+      <button class="btn btn-secondary" onclick="location.reload()">
+        Kembali ke Beranda 🏠
+      </button>
+    </div>
   </div>
 </div>
 
@@ -721,6 +806,17 @@ const COLORS = ['red', 'yellow', 'green', 'blue'];
 const AVATAR_EMOJIS = ['🐱', '🐰', '🐻', '🐼', '🌸', '💖', '👑', '🦊', '🐥'];
 const AVATAR_COLORS = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#a855f7', '#ec4899', '#06b6d4', '#f97316'];
 const BOT_NAMES = ['Bot Panda 🐼', 'Bot Bunny 🐰', 'Bot Cat 🐱'];
+
+const COUPLE_DARES = [
+  "🍦 Traktir es krim atau minuman manis favorit pasangan!",
+  "🤪 Kirim foto selfie muka paling lucu tanpa filter sekarang!",
+  "🎤 Kirim voice note nyanyi 1 bait lagu romantis!",
+  "💆 Pijitin pundak pasangan selama 5 menit penuh cinta!",
+  "🤗 Peluk erat pasangan selama 1 menit tanpa lepas!",
+  "💌 Tuliskan 3 hal yang paling kamu sukai dari pasanganmu!",
+  "✨ Bebas request 1 permintaan spesial yang harus dituruti hari ini!",
+  "📸 Jadikan foto pasangan sebagai wallpaper HP selama 24 jam!"
+];
 
 let myId = null;
 let myName = '';
@@ -734,14 +830,14 @@ let isQuickPlay = false;
 let isHost = false;
 let localState = null;
 let peer = null;
-let peerConnections = []; // If Host: array of DataConnections; If Guest: [connectionToHost]
+let peerConnections = [];
 let broadcastChannel = null;
 let botMoveScheduled = false;
 
 // Interaction & Modal memory
 let pendingWildCardId = null;
 let pendingSevenCardId = null;
-let drawnCardActionData = null; // { card, wasDrawn }
+let drawnCardActionData = null;
 let turnTimerInterval = null;
 let turnTimeRemaining = 30;
 
@@ -752,6 +848,13 @@ let lastIsMyTurn = false;
 let lastWinner = null;
 let lastChatLen = 0;
 let firstRender = true;
+
+/* ==================== HAPTIC FEEDBACK (MOBILE VIBRATION) ==================== */
+function haptic(pattern = 15) {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(pattern); } catch(e){}
+  }
+}
 
 /* ==================== SOUND SYNTHESIZER (WEB AUDIO) ==================== */
 let soundOn = true;
@@ -793,6 +896,7 @@ function sfxCatch() { beep(160, 0.28, 'sawtooth', 0.18); }
 function sfxEmote() { beep(880, 0.08, 'sine', 0.08); beep(1175, 0.12, 'triangle', 0.08, 0.08); }
 function sfxWin() { [523, 659, 784, 1046, 1318].forEach((f, i) => beep(f, 0.22, 'triangle', 0.16, i * 0.12)); }
 function sfxChat() { beep(440, 0.06, 'sine', 0.06); }
+function sfxRoulette() { beep(700, 0.06, 'triangle', 0.08); }
 
 function toggleSound() {
   soundOn = !soundOn;
@@ -1005,7 +1109,7 @@ function describeCard(card, chosenColor) {
   return colorNames[card.color] + ' ' + names[card.type];
 }
 
-/* ==================== MULTIPLAYER ENGINE (WEBRTC PEERJS & BROADCAST) ==================== */
+/* ==================== MULTIPLAYER ENGINE ==================== */
 function initBroadcastChannel(code) {
   if ('BroadcastChannel' in window) {
     try {
@@ -1018,11 +1122,9 @@ function initBroadcastChannel(code) {
 }
 
 function broadcastToAll(msg) {
-  // 1. BroadcastChannel (same browser multi-tab)
   if (broadcastChannel) {
     try { broadcastChannel.postMessage(msg); } catch(e){}
   }
-  // 2. PeerJS DataConnections
   peerConnections.forEach(conn => {
     if (conn && conn.open) {
       try { conn.send(msg); } catch(e){}
@@ -1056,6 +1158,8 @@ function handleNetworkMessage(msg) {
     }
   } else if (msg.type === 'EMOTE_FLY') {
     spawnFlyingEmote(msg.emoji, msg.senderName);
+  } else if (msg.type === 'DARE_RESULT') {
+    document.getElementById('dareContent').textContent = msg.text;
   }
 }
 
@@ -1103,7 +1207,6 @@ async function createRoom() {
 
     initBroadcastChannel(roomCode);
 
-    // Initialize PeerJS host
     const peerId = 'unogf_' + roomCode.toLowerCase();
     try {
       if (typeof Peer !== 'undefined') {
@@ -1115,12 +1218,10 @@ async function createRoom() {
             if (localState) conn.send({ type: 'SYNC_STATE', state: localState });
           });
         });
-        peer.on('error', err => {
-          console.warn('PeerJS Host Notice:', err);
-        });
+        peer.on('error', err => console.warn('PeerJS Host Notice:', err));
       }
     } catch(e) {
-      console.warn('PeerJS init failed, falling back to BroadcastChannel:', e);
+      console.warn('PeerJS init fallback:', e);
     }
 
     const state = {
@@ -1130,6 +1231,8 @@ async function createRoom() {
       spectators: [],
       started: false,
       winner: null,
+      round: 1,
+      scores: { [myId]: 0 },
       hands: {},
       deck: [],
       discard: [],
@@ -1175,7 +1278,6 @@ async function joinRoom() {
 
     initBroadcastChannel(roomCode);
 
-    // Connect to host via PeerJS
     if (typeof Peer !== 'undefined') {
       try {
         peer = new Peer();
@@ -1195,15 +1297,12 @@ async function joinRoom() {
             });
           });
         });
-        peer.on('error', err => {
-          console.warn('PeerJS Guest Notice:', err);
-        });
+        peer.on('error', err => console.warn('PeerJS Guest Notice:', err));
       } catch(err) {
         console.warn('Guest PeerJS error:', err);
       }
     }
 
-    // Also broadcast JOIN action via BroadcastChannel
     sendToHost({
       type: 'ACTION',
       action: 'JOIN',
@@ -1238,10 +1337,13 @@ async function quickPlay() {
   const botEmojis = AVATAR_EMOJIS.filter(e => e !== myEmoji);
   const botColors = AVATAR_COLORS.filter(c => c !== myColor);
   const players = [{ id: myId, name: myName, emoji: myEmoji, color: myColor }];
+  const scores = { [myId]: 0 };
 
   BOT_NAMES.forEach((n, i) => {
+    const bId = 'bot' + (i + 1);
+    scores[bId] = 0;
     players.push({
-      id: 'bot' + (i + 1),
+      id: bId,
       name: n,
       emoji: botEmojis[i % botEmojis.length],
       color: botColors[i % botColors.length],
@@ -1262,6 +1364,8 @@ async function quickPlay() {
     spectators: [],
     started: true,
     winner: null,
+    round: 1,
+    scores,
     hands,
     deck,
     discard: [first],
@@ -1304,10 +1408,17 @@ async function handleHostAction(msg) {
       const exists = state.players.find(p => p.id === msg.id);
       if (!exists && !state.started && state.players.length < 8) {
         state.players.push({ id: msg.id, name: msg.name, emoji: msg.emoji, color: msg.color });
+        if (!state.scores) state.scores = {};
+        state.scores[msg.id] = 0;
         state.log.push(msg.name + ' bergabung ke room! ✨');
       }
     }
     broadcastState(state);
+    return;
+  }
+
+  if (action === 'NEXT_ROUND') {
+    startNextRoundLogic();
     return;
   }
 
@@ -1322,6 +1433,14 @@ async function handleHostAction(msg) {
   if (action === 'EMOTE') {
     broadcastToAll({ type: 'EMOTE_FLY', emoji: msg.emoji, senderName: msg.senderName });
     spawnFlyingEmote(msg.emoji, msg.senderName);
+    return;
+  }
+
+  if (action === 'SPIN_DARE') {
+    broadcastToAll({ type: 'DARE_RESULT', text: msg.text });
+    document.getElementById('dareContent').textContent = msg.text;
+    state.log.push('🎡 Roda Hukuman: ' + msg.text);
+    broadcastState(state);
     return;
   }
 
@@ -1418,6 +1537,8 @@ async function applyPlayCore(state, actingId, actingIndex, card, chosenColor, is
 
   if (hand.length === 0) {
     state.winner = actingId;
+    if (!state.scores) state.scores = {};
+    state.scores[actingId] = (state.scores[actingId] || 0) + 1;
     state.log.push(logMsg);
     state.log.push('🎉 ' + me + ' menghabiskan semua kartu dan menang!');
     return;
@@ -1464,6 +1585,63 @@ async function applyPlayCore(state, actingId, actingIndex, card, chosenColor, is
   state.log.push('Giliran ' + state.players[state.currentIndex].name);
 }
 
+/* ==================== NEXT ROUND LOGIC ==================== */
+function requestNextRound() {
+  sendToHost({ type: 'ACTION', action: 'NEXT_ROUND' });
+}
+
+function startNextRoundLogic() {
+  if (!isHost && !isQuickPlay) return;
+  let state = localState;
+  if (!state) return;
+
+  state.round = (state.round || 1) + 1;
+  state.winner = null;
+  state.pendingDraw = 0;
+  state.pendingDrawType = null;
+  state.unoCalled = {};
+
+  let deck = shuffle(createDeck());
+  const hands = {};
+  state.players.forEach(p => { hands[p.id] = deck.splice(0, 7); });
+  let first = deck.pop();
+  while (first.color === 'black') { deck.unshift(first); shuffle(deck); first = deck.pop(); }
+
+  state.hands = hands;
+  state.deck = deck;
+  state.discard = [first];
+  state.currentColor = first.color;
+  state.currentIndex = 0;
+  state.direction = 1;
+  state.log.push(`--- Ronde ${state.round} Dimulai! 🎮 ---`);
+  state.log.push('Giliran ' + state.players[0].name);
+
+  document.getElementById('winModal').style.display = 'none';
+  broadcastState(state);
+}
+
+/* ==================== COUPLE DARE ROULETTE ==================== */
+function spinCoupleDare() {
+  ensureAudio();
+  haptic(40);
+  const dareEl = document.getElementById('dareContent');
+  let count = 0;
+  const timer = setInterval(() => {
+    count++;
+    sfxRoulette();
+    const temp = COUPLE_DARES[Math.floor(Math.random() * COUPLE_DARES.length)];
+    dareEl.textContent = temp;
+    if (count > 10) {
+      clearInterval(timer);
+      const finalDare = COUPLE_DARES[Math.floor(Math.random() * COUPLE_DARES.length)];
+      dareEl.textContent = finalDare;
+      sfxEmote();
+      haptic([60, 40, 80]);
+      sendToHost({ type: 'ACTION', action: 'SPIN_DARE', text: finalDare });
+    }
+  }, 100);
+}
+
 /* ==================== BOT AI LOGIC ==================== */
 function scheduleBotMoveIfNeeded() {
   if (!isHost || botMoveScheduled) return;
@@ -1488,7 +1666,6 @@ async function botTakeTurn() {
 
   if (!state.unoCalled) state.unoCalled = {};
 
-  // Bot catch attempt
   const catchable = state.players.filter(p => p.id !== bot.id && (state.hands[p.id] || []).length === 1 && state.unoCalled[p.id] !== true);
   if (catchable.length && Math.random() < 0.55) {
     const target = catchable[Math.floor(Math.random() * catchable.length)];
@@ -1653,6 +1830,11 @@ async function startGame() {
   state.direction = 1;
   state.started = true;
   state.winner = null;
+  state.round = 1;
+  if (!state.scores) {
+    state.scores = {};
+    state.players.forEach(p => state.scores[p.id] = 0);
+  }
   state.pendingDraw = 0;
   state.pendingDrawType = null;
   state.unoCalled = {};
@@ -1699,18 +1881,25 @@ function renderGame(state) {
   if (!state.spectators) state.spectators = [];
   if (!state.chat) state.chat = [];
   if (!state.unoCalled) state.unoCalled = {};
+  if (!state.scores) state.scores = {};
 
   const curPlayer = state.players[state.currentIndex];
   const isMyTurn = !isSpectatorMode && curPlayer && curPlayer.id === myId && !state.winner;
   const pendingDraw = state.pendingDraw || 0;
   const houseRules = state.houseRules !== false;
 
-  if (!firstRender && isMyTurn && !lastIsMyTurn && !state.winner) { sfxTurn(); }
+  document.getElementById('roundBadge').textContent = `Ronde ${state.round || 1}`;
+
+  if (!firstRender && isMyTurn && !lastIsMyTurn && !state.winner) {
+    sfxTurn();
+    haptic([30, 60]);
+  }
 
   // Check victory
   if (state.winner) {
     if (state.winner !== lastWinner) {
       sfxWin();
+      haptic([100, 50, 150, 50, 250]);
       triggerConfetti();
     }
     const wm = document.getElementById('winModal');
@@ -1730,7 +1919,26 @@ function renderGame(state) {
         document.getElementById('winTitle').textContent = (winner ? winner.name : 'Pemain') + ' Menang! 👏';
         document.getElementById('winSub').textContent = 'Permainan selesai dengan seru!';
       }
+
+      // Render Scoreboard in Win Modal
+      const sb = document.getElementById('winScoreboard');
+      sb.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:4px; text-align:left;">🏆 Papan Skor (Ronde ${state.round || 1})</div>`;
+      state.players.forEach(p => {
+        const sc = state.scores[p.id] || 0;
+        const row = document.createElement('div');
+        row.className = 'win-score-row';
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${avatarBadgeHtml(p.emoji, p.color, 24)}
+            <span>${escapeHtml(p.name)}</span>
+          </div>
+          <div style="color:var(--gold)">${sc} Menang</div>
+        `;
+        sb.appendChild(row);
+      });
     }
+  } else {
+    document.getElementById('winModal').style.display = 'none';
   }
 
   // Status banner
@@ -1762,10 +1970,12 @@ function renderGame(state) {
     d.className = 'opp' + (i === state.currentIndex ? ' active' : '');
     const cnt = (state.hands[p.id] || []).length;
     const exposed = cnt === 1 && state.unoCalled[p.id] !== true;
+    const pScore = state.scores[p.id] || 0;
     d.innerHTML = `
       ${avatarBadgeHtml(p.emoji, p.color, 32)}
       <div class="name">${escapeHtml(p.name)}</div>
       <div class="cnt${exposed ? ' exposed' : ''}">${cnt}</div>
+      <div class="score-tag">⭐ ${pScore}</div>
     `;
     if (exposed && p.id !== myId && !isSpectatorMode) {
       const btn = document.createElement('button');
@@ -1785,7 +1995,10 @@ function renderGame(state) {
     const changed = top.id !== lastTopCardId;
     const c = cardEl(top, { pop: changed && !firstRender, rotation: (top.id.charCodeAt(top.id.length-1) % 11) - 5 });
     discardWrap.appendChild(c);
-    if (changed && !firstRender) sfxPlayCard();
+    if (changed && !firstRender) {
+      sfxPlayCard();
+      haptic(15);
+    }
     lastTopCardId = top.id;
 
     if (top.color === 'black') {
@@ -1805,7 +2018,10 @@ function renderGame(state) {
   deckPile.classList.toggle('urgent', isMyTurn && pendingDraw > 0);
   deckPile.classList.toggle('nonclick', isSpectatorMode || state.winner || !isMyTurn);
 
-  if (!firstRender && lastDeckLen !== null && state.deck.length < lastDeckLen) { sfxDraw(); }
+  if (!firstRender && lastDeckLen !== null && state.deck.length < lastDeckLen) {
+    sfxDraw();
+    haptic(20);
+  }
   lastDeckLen = state.deck.length;
 
   // Log
@@ -1830,8 +2046,9 @@ function renderGame(state) {
     spectatorNote.style.display = 'none';
     handTitleRow.style.display = 'flex';
     const hand = state.hands[myId] || [];
+    const myScore = state.scores[myId] || 0;
     handWrap.innerHTML = '';
-    document.getElementById('handTitle').textContent = 'Kartu kamu (' + hand.length + ')';
+    document.getElementById('handTitle').innerHTML = `Kartu kamu (${hand.length}) • <span style="color:var(--gold)">⭐ ${myScore} Menang</span>`;
 
     hand.forEach(card => {
       const myTurnPlayable = isMyTurn && isPlayable(card, top, state.currentColor, pendingDraw);
@@ -1876,17 +2093,14 @@ function handleDraw() {
   const curPlayer = localState.players[localState.currentIndex];
   if (!curPlayer || curPlayer.id !== myId) return;
 
-  // If there's pending draw stack (+2/+4), player must draw all and can't draw-and-play
+  haptic(25);
+
   if ((localState.pendingDraw || 0) > 0) {
     sendToHost({ type: 'ACTION', action: 'DRAW', senderId: myId });
     return;
   }
 
-  // Draw-and-Play Mechanic
-  const hand = localState.hands[myId] || [];
   const top = localState.discard[localState.discard.length - 1];
-
-  // Draw 1 card locally to check if playable
   if (localState.deck.length === 0) reshuffleDiscardIntoDeck(localState);
   if (localState.deck.length > 0) {
     const drawn = localState.deck[localState.deck.length - 1];
@@ -1913,7 +2127,6 @@ function confirmPlayDrawnCard() {
   const card = drawnCardActionData;
   drawnCardActionData = null;
 
-  // Let host know to draw 1 and immediately play
   sendToHost({ type: 'ACTION', action: 'DRAW', senderId: myId });
   setTimeout(() => handlePlay(card), 150);
 }
@@ -1932,6 +2145,8 @@ function handlePlay(card) {
 
   const top = localState.discard[localState.discard.length - 1];
   if (!isPlayable(card, top, localState.currentColor, localState.pendingDraw || 0)) return;
+
+  haptic(20);
 
   if (card.type === 'wild' || card.type === 'wild4') {
     pendingWildCardId = card.id;
@@ -2008,6 +2223,7 @@ function chooseSwapTarget(targetId) {
 function handleJumpIn(card) {
   ensureAudio();
   if (isSpectatorMode || !localState || localState.winner) return;
+  haptic([30, 50]);
   sendToHost({
     type: 'ACTION',
     action: 'PLAY_CARD',
@@ -2022,6 +2238,7 @@ function callUno() {
   ensureAudio();
   if (isSpectatorMode || !localState || localState.winner) return;
   sfxUno();
+  haptic([50, 50, 80]);
   sendToHost({ type: 'ACTION', action: 'CALL_UNO', senderId: myId });
 }
 
@@ -2029,6 +2246,7 @@ function catchPlayer(targetId) {
   ensureAudio();
   if (isSpectatorMode || !localState || localState.winner) return;
   sfxCatch();
+  haptic([40, 40, 70]);
   sendToHost({ type: 'ACTION', action: 'CATCH', senderId: myId, targetId });
 }
 
@@ -2050,6 +2268,7 @@ function sendChat() {
 function sendQuickEmote(emoji) {
   ensureAudio();
   sfxEmote();
+  haptic(15);
   sendToHost({
     type: 'ACTION',
     action: 'EMOTE',
@@ -2103,7 +2322,7 @@ function triggerConfetti() {
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.42; // gravity
+      p.vy += 0.42;
       p.vx *= 0.98;
       p.rotation += p.vrot;
       p.alpha -= 0.007;
@@ -2117,7 +2336,6 @@ function triggerConfetti() {
         ctx.fillStyle = p.color;
 
         if (p.shape === 'heart') {
-          // Draw mini heart
           const s = p.size * 0.6;
           ctx.beginPath();
           ctx.moveTo(0, s * 0.3);
