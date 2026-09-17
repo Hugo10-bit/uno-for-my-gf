@@ -1333,12 +1333,16 @@ function rotateAllHands(state) {
 }
 
 function drawCardsInto(state, playerId, n) {
+  const drawn = [];
   for (let i = 0; i < n; i++) {
     if (state.deck.length === 0) reshuffleDiscardIntoDeck(state);
     if (state.deck.length === 0) break;
-    state.hands[playerId].push(state.deck.pop());
+    const card = state.deck.pop();
+    state.hands[playerId].push(card);
+    drawn.push(card);
   }
   syncUnoAfterHandChange(state, playerId);
+  return drawn;
 }
 
 function reshuffleDiscardIntoDeck(state) {
@@ -1729,9 +1733,12 @@ async function handleHostAction(msg) {
         drawCardsInto(state, curPlayer.id, 1);
         state.log.push(me + ' menarik 1 kartu');
       }
-      state.currentIndex = nextIndex(state, state.currentIndex, 1);
-      state.log.push('Giliran ' + state.players[state.currentIndex].name);
       state.lastDraw = { playerId: curPlayer.id, ts: Date.now() };
+      // If player wants to immediately play the drawn card, don't advance turn yet
+      if (!msg.drawAndPlay) {
+        state.currentIndex = nextIndex(state, state.currentIndex, 1);
+        state.log.push('Giliran ' + state.players[state.currentIndex].name);
+      }
       broadcastState(state);
     }
     return;
@@ -2602,8 +2609,10 @@ function confirmPlayDrawnCard() {
   const card = drawnCardActionData;
   drawnCardActionData = null;
 
-  sendToHost({ type: 'ACTION', action: 'DRAW', senderId: myId });
-  setTimeout(() => handlePlay(card), 150);
+  // Send DRAW with drawAndPlay flag so the host won't advance the turn yet
+  sendToHost({ type: 'ACTION', action: 'DRAW', senderId: myId, drawAndPlay: true });
+  // Play the card after the DRAW state has been broadcast (give host time to process)
+  setTimeout(() => handlePlay(card), 300);
 }
 
 function confirmKeepDrawnCard() {
